@@ -7,12 +7,7 @@
  *************************************/
 import Dispatcher from '../dispatcher/appDispatcher.js';
 import axios from 'axios';
-const config = {
-    'OData-MaxVersion': 4.0,
-    'OData-Version': 4.0,
-    'Accept': 'application/json',
-    'Content-Type': 'application/json; charset=utf-8'
-  }
+import { adalApiFetch } from '../adalConfig.js';
 
 /*
 Functions included in file
@@ -60,7 +55,6 @@ const VehicleActions = {
             madmv_ma_vehicleid: updateObj.madmv_ma_vehicleid,
             madmv_modelorseries: updateObj.madmv_modelorseries,
             madmv_typeofvehicle: updateObj.madmv_typeofvehicle,
-            madmv_vehicleidnumber: updateObj.madmv_vehicleidnumber,
             madmv_vehiclemake: updateObj.madmv_vehiclemake,
             madmv_yearmodel: updateObj.madmv_yearmodel
         }
@@ -68,14 +62,16 @@ const VehicleActions = {
         // build uri and headers
         let uri = "https://sstack.crm.dynamics.com/api/data/v9.1/madmv_ma_vehicles(" + id + ")";
         let config = {
+            method: 'patch',
             'OData-MaxVersion': 4.0,
             'OData-Version': 4.0,
-            'Accept': 'application/json',
-            'Content-Type': 'application/json; charset=utf-8'
-        }
-
-        // make axios put call
-        axios.patch(uri, vehicle, config)
+            Accept: 'application/json',
+            'Content-Type': 'application/json; charset=utf-8',
+            data: vehicle
+          };
+      
+        // send the api call
+        adalApiFetch(axios, uri, config)
             .then(res => {
                 Dispatcher.dispatch({
                     actionType: 'update_vehicle_success',
@@ -88,7 +84,6 @@ const VehicleActions = {
                     actionType: 'update_vehicle_failure'
                 });
             });
-
     },
 
     /**********************************************
@@ -101,48 +96,55 @@ const VehicleActions = {
      * Return: none
      **********************************************/
     updateVehicleVin: (id, vin) => {
-        // notify store that update has started
-        Dispatcher.dispatch({
-            actionType: 'update_vehicle_started'
-        });
-        // make call to vin decoder api
-        let webApi = "https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/";
-        let apiParams = "?format=json";
-        // build uri and headers
-        let uri = "https://sstack.crm.dynamics.com/api/data/v9.1/madmv_ma_vehicles(" + id + ")";
-        let config = {
-            'OData-MaxVersion': 4.0,
-            'OData-Version': 4.0,
-            'Accept': 'application/json',
-            'Content-Type': 'application/json; charset=utf-8'
-        }
-
-        axios.get(webApi+vin+apiParams)
-            .then(res => {
-                // create the vehicle object
-                let vehicle = parseVinDecodeResult(res.data.Results[0]);
-                vehicle["madmv_vehicleidnumber"] = vin;
-                // make the axios call to Dynamics CRM to update the vehicle
-                axios.patch(uri, vehicle, config)
-                    .then(result => {
-                        Dispatcher.dispatch({
-                            actionType: 'update_vehicle_success',
-                            data: result.data
-                        });
-                    })
-                    .catch( (error) => {
-                        console.log(error);
-                        Dispatcher.dispatch({
-                            actionType: 'update_vehicle_failure'
-                        });
-                });
-            })
-            .catch( (error) => {
-                console.log(error);
-                Dispatcher.dispatch({
-                    actionType: 'update_vehicle_failure'
-                });
+        if (id !== "" && id !== null && vin !== null && vin !== ""){
+            // notify store that update has started
+            Dispatcher.dispatch({
+                actionType: 'update_vehicle_started'
             });
+            // make call to vin decoder api
+            let webApi = "https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/";
+            let apiParams = "?format=json";
+            // build uri and headers
+            let uri = "https://sstack.crm.dynamics.com/api/data/v9.1/madmv_ma_vehicles(" + id + ")";
+
+            axios.get(webApi+vin+apiParams)
+                .then(res => {
+                    // create the vehicle object
+                    let vehicle = parseVinDecodeResult(res.data.Results[0]);
+                    vehicle["madmv_vehicleidnumber"] = vin;
+                    console.log(vehicle);
+                    // make the axios call to Dynamics CRM to update the vehicle
+                    let config = {
+                        method: 'patch',
+                        'OData-MaxVersion': 4.0,
+                        'OData-Version': 4.0,
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json; charset=utf-8',
+                        data: vehicle
+                    };
+                
+                    // send the api call
+                    adalApiFetch(axios, uri, config)
+                        .then(res => {
+                            Dispatcher.dispatch({
+                                actionType: 'update_vehicle_success',
+                                data: res.data
+                            });
+                        })
+                        .catch( (error) => {
+                            console.log(error);
+                            Dispatcher.dispatch({
+                                actionType: 'update_vehicle_failure'
+                            });
+                        });
+                })
+                .catch( (error) => {
+                    console.log(error);
+                    Dispatcher.dispatch({
+                        actionType: 'update_vehicle_failure'
+                    });
+                });
+        }
     },
       /**
    * *Send vehicle create request to the Dynamics365 api
@@ -156,10 +158,22 @@ const VehicleActions = {
     vehicle.madmv_modelorseries = description.model;
     vehicle.madmv_vehicleidnumber = description.vin;
 
+    let uri = "https://sstack.crm.dynamics.com/api/data/v9.1/madmv_ma_vehicles";
+
     Dispatcher.dispatch({
       actionType: "creating_record"
     });
-    axios.post("https://sstack.crm.dynamics.com/api/data/v9.1/madmv_ma_vehicles",vehicle,config)
+    let config = {
+        method: 'post',
+        'OData-MaxVersion': 4.0,
+        'OData-Version': 4.0,
+        Accept: 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
+        data: vehicle
+      };
+  
+    // send the api call
+    adalApiFetch(axios, uri, config)
       .then(res => {
         Dispatcher.dispatch({
           actionType: "created_successfully",
@@ -174,32 +188,37 @@ const VehicleActions = {
       });
   },
 
-        //just send the guid of the record you want deleted in the function call VehicleActions.deleteVehicle(id)
-        deleteVehicle: (id) => {
-            // notify store that update has started
-            Dispatcher.dispatch({
-                actionType: 'delete_vehicle_started'
+    //just send the guid of the record you want deleted in the function call VehicleActions.deleteVehicle(id)
+    deleteVehicle: (id) => {
+        // notify store that update has started
+        Dispatcher.dispatch({
+            actionType: 'delete_vehicle_started'
+        });
+        // build uri and headers
+        let uri = "https://sstack.crm.dynamics.com/api/data/v9.1/madmv_ma_vehicles(" + id + ")";
+        let config = {
+            method: 'delete',
+            'OData-MaxVersion': 4.0,
+            'OData-Version': 4.0,
+            Accept: 'application/json',
+            'Content-Type': 'application/json; charset=utf-8',
+            };
+        
+        // send the api call
+        adalApiFetch(axios, uri, config)
+            .then(res => {
+                console.log(res.data);
+                Dispatcher.dispatch({
+                actionType: 'delete_vehicles_success'
+                });
+            })
+            .catch((err) => {
+                console.log(err);
+                Dispatcher.dispatch({
+                    actionType: 'delete_vehicles_failure'
+                });
             });
-            // build uri and headers
-            let uri = "https://sstack.crm.dynamics.com/api/data/v9.1/madmv_ma_vehicles(" + id + ")";
-    
-    
-            // make axios put call
-    
-                axios.delete(uri)
-                    .then(res => {
-                        console.log(res.data);
-                        Dispatcher.dispatch({
-                        actionType: 'delete_vehicles_success'
-                        });
-                    })
-                    .catch((err) => {
-                        console.log(err);
-                        Dispatcher.dispatch({
-                            actionType: 'delete_vehicles_failure'
-                        });
-                    });
-        }
+    }
 }
 
 

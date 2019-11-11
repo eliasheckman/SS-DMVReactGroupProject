@@ -50,7 +50,12 @@ class VehicleDetailsView extends React.Component {
       handleSubmit (event)  {
         event.preventDefault();
         console.log(this.state);
-        VehicleActions.updateVehicle(this.state.olddata.madmv_ma_vehicleid,this.state)
+        if (this.state.madmv_vehicleidnumber === this.state.olddata.madmv_vehicleidnumber){
+            VehicleActions.updateVehicle(this.state.olddata.madmv_ma_vehicleid,this.state);
+        }
+        else {
+            VehicleActions.updateVehicleVin(this.state.olddata.madmv_ma_vehicleid, this.state.madmv_vehicleidnumber);
+        }
         //this.props.changeStore(this.state)
         this.setState({disabled: !this.state.disabled})
 
@@ -81,12 +86,10 @@ class VehicleDetailsView extends React.Component {
             </div>
             <form onSubmit={this.handleSubmit} className="detailedForm">
                 <fieldset disabled={(this.state.disabled) ? "disabled" : ""}>
-                    <table>
-                        <tbody>
+                 
 
-                            <tr className="trDetailedView">
-
-                                <th className="thDetailedView">
+                          
+                                <div className="thDetailedView">
 
                                     <div className="form-group fieldDetailed form-inline">
                                         <label>VIN:</label>
@@ -120,15 +123,15 @@ class VehicleDetailsView extends React.Component {
                                         <label>Type Of Vehicle:</label>
                                         <input name="madmv_typeofvehicle" onChange={this.handleChange} type="text" className="form-control" value={vehicle.madmv_typeofvehicle} />
                                     </div>
-                                </th>
-                            </tr>
-                        </tbody>
-                    </table>
+                                </div>
+                           
+                    
                 </fieldset>
+                <div className="divCancelSave">
 
-                <button className={(this.state.disabled)?"invisible":"btn btn-primary cancel-submit btn-lg"}   onClick={this.handleCancel} type="button">Cancel</button>
+                <button className={(this.state.disabled)?"invisible":"btn btn-primary btn-danger cancel-submit btn-lg"}   onClick={this.handleCancel} type="button">Cancel</button>
                 <button className={(this.state.disabled)?"invisible":"btn btn-primary cancel-submit btn-lg"}   type="submit">Save</button>
-
+                </div>
             </form>
 
         </div>

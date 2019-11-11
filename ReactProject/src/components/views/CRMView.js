@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import { State } from "../../constants/DataLoaderConstants.js";
 import DataLoader from "../../actions/DataLoader.js";
 import stores from "../../stores/stores.js";
-import { MDBDataTable, Row, Col, Card, CardBody } from 'mdbreact';
+import { MDBDataTable } from 'mdbreact';
 import ApplicationActions from "../../actions/ApplicationActions.js";
 import CustomerActions from "../../actions/CustomerActions.js";
 import VehicleActions from "../../actions/VehicleActions.js";
@@ -70,7 +70,9 @@ export default class CRMView extends React.Component {
             CustomerActions.deleteCustomer(id)
         else if (deletetype == 'vehicle')
             VehicleActions.deleteVehicle(id)
-    }
+        else if(deletetype == 'applicationhist') 
+            ApplicationActions.undoApplication(id)
+        }
 
     getSuccessContent() {
         let content = {
@@ -80,20 +82,12 @@ export default class CRMView extends React.Component {
 
         return (
             <div>
-                <Row className="mb-4">
-                    <Col md="12">
-                        <Card>
-                            <CardBody>
-                                <MDBDataTable
-                                    striped
-                                    bordered
-                                    hover
-                                    data={content}
-                                />
-                            </CardBody>
-                        </Card>
-                    </Col>
-                </Row>
+                <MDBDataTable
+                    striped
+                    bordered
+                    hover
+                    data={content}
+                />
                 <div className="pb-4">
                     <Modal comp={this.props.dataType} text="Create New" />
                 </div>
@@ -126,6 +120,10 @@ export default class CRMView extends React.Component {
     cleanupNullFieldValues(record) {
         for (const field of Object.keys(record)) {
             if (record[field] === null) record[field] = " ";
+            if (field == "createdon")
+            {
+                record[field] = record[field].split("T")[0];
+            }
         }
     }
 
@@ -136,13 +134,22 @@ export default class CRMView extends React.Component {
 
     addInputs(record) {
         //console.log(record);
+        if (this.props.dataType == "applicationhist"){
+            record.checkbox = (<button
+                className="btn btn-sm btn-danger"
+                onClick={() => { if (window.confirm('Are you sure you wish to delete this item?')) this.handleDelete(record["madmv_ma_" + this.props.dataType + "id"]) }}
+            >
+                Undo
+            </button>
+            );
+        } else {
         record.click = (
             <button
                 className="btn btn-sm btn-primary"
                 //onClick={() => this.handleView(record)}
                 onClick={() => this.handleView(record["madmv_ma_" + this.props.dataType + "id"])}
             >
-                Detail Info
+                Detailed Info
             </button>
         );
         //base on table type, pass the right id into delete function, also in the delete function, we
@@ -154,6 +161,7 @@ export default class CRMView extends React.Component {
             Delete
         </button>
         );
+        }
     }
 
 
